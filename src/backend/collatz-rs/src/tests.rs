@@ -1,33 +1,51 @@
 
+
+// Baseline bigint implementation
+#[inline]
+#[cfg(test)]
+fn calc_sequence_bigint(input: &str) -> Result<Vec<String>, ()> {
+    use Number;
+    use StepResult::*;
+    use num_traits::Num;
+    use bigmath::BigUint;
+    use calc_step;
+
+    let mut sequence_bigint = Vec::with_capacity(256);
+
+    if let Ok(number_bigint) = BigUint::from_str_radix(input, 10) {
+        let mut temp = number_bigint;
+        sequence_bigint.push(temp.clone());
+        loop {
+            match calc_step(temp) {
+                Step(number) => {
+                    temp = number;
+                    sequence_bigint.push(temp.clone());
+                }
+                Done(number) => {
+                    sequence_bigint.push(number);
+                    return Ok(sequence_bigint.iter().map(Number::to_string).collect());
+                }
+                Overflow(_) => unreachable!(),
+            }
+        }
+    }
+
+    Err(())
+}
+
 #[cfg(test)]
 mod tests {
-    use test;
-
-    use calc_sequence_bigint;
+    use super::calc_sequence_bigint;
     use calc_sequence_rs;
-
-    use bigmath::BigUint;
-    use num_traits::Num;
-    use num_traits::One;
 
     #[test]
     fn simple() {
         let result = calc_sequence_rs("12").unwrap();
         let result_str = result.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
         assert_eq!(
-            result_str, 
-            vec![
-                "12",
-                "6",
-                "3",
-                "10",
-                "5",
-                "16",
-                "8",
-                "4",
-                "2",
-                "1"
-            ]);
+            result_str,
+            vec!["12", "6", "3", "10", "5", "16", "8", "4", "2", "1"]
+        );
 
     }
 
@@ -36,19 +54,9 @@ mod tests {
         let result = calc_sequence_bigint("12").unwrap();
         let result_str = result.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
         assert_eq!(
-            result_str, 
-            vec![
-                "12",
-                "6",
-                "3",
-                "10",
-                "5",
-                "16",
-                "8",
-                "4",
-                "2",
-                "1"
-            ]);
+            result_str,
+            vec!["12", "6", "3", "10", "5", "16", "8", "4", "2", "1"]
+        );
 
     }
 
@@ -56,14 +64,14 @@ mod tests {
     fn first_and_last_u64() {
         let result = calc_sequence_rs("12458674").unwrap();
         assert_eq!(&result[0], "12458674");
-        assert_eq!(&result[result.len()-1], "1");
+        assert_eq!(&result[result.len() - 1], "1");
     }
 
     #[test]
     fn first_and_last_u256() {
         let result = calc_sequence_rs("18446744073709551616").unwrap();
         assert_eq!(&result[0], "18446744073709551616");
-        assert_eq!(&result[result.len()-1], "1");
+        assert_eq!(&result[result.len() - 1], "1");
     }
 
     #[test]
@@ -71,24 +79,19 @@ mod tests {
         let n = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999";
         let result = calc_sequence_rs(n).unwrap();
         assert_eq!(&result[0], n);
-        assert_eq!(&result[result.len()-1], "1");
+        assert_eq!(&result[result.len() - 1], "1");
     }
 
 }
 
 #[cfg(test)]
 mod bench {
-    use super::*;
-    use std::mem;
-
     use test;
 
-    use calc_sequence_bigint;
+    use super::calc_sequence_bigint;
     use calc_sequence_rs;
 
     use bigmath::BigUint;
-    use num_traits::Num;
-    use num_traits::One;
 
     fn gen_space(mut from: BigUint, to: BigUint, space_size: u64) -> Vec<String> {
         let mut space = Vec::new();
@@ -101,11 +104,7 @@ mod bench {
     }
 
     fn gen_small_space() -> Vec<String> {
-        gen_space(
-            BigUint::from(2u64),
-            BigUint::from(100000u64),
-            1000
-        )
+        gen_space(BigUint::from(2u64), BigUint::from(100000u64), 1000)
     }
 
     fn gen_large_number() -> String {
@@ -115,37 +114,29 @@ mod bench {
     #[bench]
     fn small_space(b: &mut test::Bencher) {
         let space = gen_small_space();
-        b.iter(|| {
-            for num in &space {
-                drop(calc_sequence_rs(&num).unwrap());
-            }
+        b.iter(|| for num in &space {
+            calc_sequence_rs(&num).unwrap();
         });
     }
 
     #[bench]
     fn large_number(b: &mut test::Bencher) {
         let number = gen_large_number();
-        b.iter(|| {
-            drop(calc_sequence_rs(&number).unwrap());
-        });
+        b.iter(|| { calc_sequence_rs(&number).unwrap(); });
     }
 
 
     #[bench]
     fn small_space_bigint(b: &mut test::Bencher) {
         let space = gen_small_space();
-        b.iter(|| {
-            for num in &space {
-                drop(calc_sequence_bigint(&num).unwrap());
-            }
+        b.iter(|| for num in &space {
+            calc_sequence_bigint(&num).unwrap();
         });
     }
 
     #[bench]
     fn large_number_bigint(b: &mut test::Bencher) {
         let number = gen_large_number();
-        b.iter(|| {
-            drop(calc_sequence_bigint(&number).unwrap());
-        });
+        b.iter(|| { calc_sequence_bigint(&number).unwrap(); });
     }
 }
