@@ -92,6 +92,7 @@ mod bench {
     use calc_sequence_rs;
     use bigint::U256;
     use smallvec::SmallVec;
+    use StepResult::Done;
 
     use bigmath::BigUint;
 
@@ -110,7 +111,7 @@ mod bench {
     }
 
     fn gen_large_number() -> String {
-        "123456789123456789123456789".to_owned()
+        "99999999999999999999999999999999999999999999999999999999999999999".to_owned()
     }
 
     #[bench]
@@ -129,11 +130,14 @@ mod bench {
 
     #[bench]
     fn large_number_u256(b: &mut test::Bencher) {
-        let number = gen_large_number();
+        let number = test::black_box(gen_large_number());
         b.iter(|| {
             let number = U256::from_dec_str(&number).unwrap();
             let mut sequence_u256 = SmallVec::<[U256; 512]>::new();
-            calc_sequence_for_number(number, &mut sequence_u256);
+            match calc_sequence_for_number(number, &mut sequence_u256) {
+                Done(_) => (),
+                _ => unreachable!()
+            }
         })
     }
 
@@ -147,7 +151,7 @@ mod bench {
 
     #[bench]
     fn large_number_bigint(b: &mut test::Bencher) {
-        let number = gen_large_number();
+        let number = test::black_box(gen_large_number());
         b.iter(|| { calc_sequence_bigint(&number).unwrap(); });
     }
 }
