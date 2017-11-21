@@ -1,10 +1,13 @@
 #![feature(test)]
 extern crate test;
 
+extern crate bigint;
 extern crate num_bigint as bigmath;
 extern crate num_traits;
 extern crate smallvec;
 extern crate gmp;
+
+use bigint::U256;
 
 use num_traits::Num;
 use num_traits::One;
@@ -195,6 +198,39 @@ impl Number for u64 {
 
     fn from_dec_str(input: &str) -> Result<Self, ParsingFailed> {
         input.parse::<u64>().map_err(|_|())
+    }
+}
+
+impl Number for U256 {
+    fn divide_by_two(self) -> StepResult<Self> {
+        let (x, overflow) = self.overflowing_div(U256::from(2));
+        if overflow { Overflow(self) } else { Step(x) }
+    }
+
+    fn triple_and_add_one(self) -> StepResult<Self> {
+        let (x, mul_overflow) = self.overflowing_mul(U256::from(3));
+        let (x, add_overflow) = x.overflowing_add(U256::one());
+        if mul_overflow || add_overflow {
+            Overflow(self)
+        } else {
+            Step(x)
+        }
+    }
+
+    fn is_odd(&self) -> bool {
+        self.bit(0)
+    }
+
+    fn is_one(&self) -> bool {
+        *self == U256::one()
+    }
+
+    fn to_string(&self) -> String {
+        format!("{}", self)
+    }
+
+    fn from_dec_str(input: &str) -> Result<Self, ParsingFailed> {
+        U256::from_dec_str(input).map_err(|_|())
     }
 }
 

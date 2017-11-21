@@ -88,7 +88,10 @@ mod bench {
     use test;
 
     use super::calc_sequence_bigint;
+    use calc_sequence_for_number;
     use calc_sequence_rs;
+    use bigint::U256;
+    use smallvec::SmallVec;
 
     use bigmath::BigUint;
 
@@ -124,6 +127,15 @@ mod bench {
         b.iter(|| { calc_sequence_rs(&number).unwrap(); });
     }
 
+    #[bench]
+    fn large_number_u256(b: &mut test::Bencher) {
+        let number = gen_large_number();
+        b.iter(|| {
+            let number = U256::from_dec_str(&number).unwrap();
+            let mut sequence_u256 = SmallVec::<[U256; 512]>::new();
+            calc_sequence_for_number(number, &mut sequence_u256);
+        })
+    }
 
     #[bench]
     fn small_space_bigint(b: &mut test::Bencher) {
