@@ -93,6 +93,7 @@ mod bench {
     use bigint::U256;
     use smallvec::SmallVec;
     use StepResult::Done;
+    use Number;
 
     use bigmath::BigUint;
 
@@ -131,10 +132,24 @@ mod bench {
     #[bench]
     fn large_number_u256(b: &mut test::Bencher) {
         let number = test::black_box(gen_large_number());
+        let number = U256::from_dec_str(&number).unwrap();
         b.iter(|| {
-            let number = U256::from_dec_str(&number).unwrap();
             let mut sequence_u256 = SmallVec::<[U256; 512]>::new();
             match calc_sequence_for_number(number, &mut sequence_u256) {
+                Done(_) => (),
+                _ => unreachable!()
+            }
+        })
+    }
+
+    #[bench]
+    fn large_number_bigint(b: &mut test::Bencher) {
+        let number = test::black_box(gen_large_number());
+        let number = BigUint::from_dec_str(&number).unwrap();
+        b.iter(|| {
+            let number = number.clone();
+            let mut sequence_bigint = SmallVec::<[BigUint; 512]>::new();
+            match calc_sequence_for_number(number, &mut sequence_bigint) {
                 Done(_) => (),
                 _ => unreachable!()
             }
@@ -147,11 +162,5 @@ mod bench {
         b.iter(|| for num in &space {
             calc_sequence_bigint(&num).unwrap();
         });
-    }
-
-    #[bench]
-    fn large_number_bigint(b: &mut test::Bencher) {
-        let number = test::black_box(gen_large_number());
-        b.iter(|| { calc_sequence_bigint(&number).unwrap(); });
     }
 }
