@@ -4,6 +4,7 @@ extern crate test;
 extern crate num_bigint as bigmath;
 extern crate num_traits;
 extern crate smallvec;
+extern crate gmp;
 
 use num_traits::Num;
 use num_traits::One;
@@ -11,7 +12,8 @@ use num_traits::One;
 use std::ffi::CStr;
 use smallvec::SmallVec;
 use smallvec::Array;
-use bigmath::BigUint;
+use bigmath::BigUint as NumBigUint;
+use gmp::mpz::Mpz;
 
 use std::ptr;
 use std::mem;
@@ -19,6 +21,9 @@ use std::mem;
 mod tests;
 
 type CStrArray = *const CStr;
+
+// Used bigint implementation
+type BigUint = Mpz;
 
 #[allow(unused)]
 unsafe extern "C" fn calc_sequence(
@@ -66,7 +71,7 @@ type ParsingFailed = ();
 fn calc_sequence_rs(input: &str) -> Result<Vec<String>, ParsingFailed> {
     // Sequence storage for different types of calculations
     let mut sequence_u64 = SmallVec::<[u64; 1024]>::new();
-    let mut sequence_bigint = SmallVec::<[BigUint; 256]>::new();
+    let mut sequence_bigint = SmallVec::<[Mpz; 256]>::new();
 
     // Try to parse u64
     let number_u64_parsed = input.parse::<u64>();
@@ -76,11 +81,11 @@ fn calc_sequence_rs(input: &str) -> Result<Vec<String>, ParsingFailed> {
     let number_bigint_parsed = if let Ok(number) = number_u64_parsed {
         match calc_sequence_for_number(number, &mut sequence_u64) {
             Done(_) => return Ok(to_string_vec(&sequence_u64, &sequence_bigint)),
-            Overflow(x) => Ok(BigUint::from(x)),
+            Overflow(x) => Ok(Mpz::from(x)),
             _ => unreachable!(),
         }
     } else {
-        BigUint::from_str_radix(input, 10)
+        BigUint::from_dec_str(input)
     };
 
     if let Ok(number) = number_bigint_parsed {
@@ -157,6 +162,7 @@ trait Number: Sized {
     fn is_odd(&self) -> bool;
     fn is_one(&self) -> bool;
     fn to_string(&self) -> String;
+    fn from_dec_str(input: &str) -> Result<Self, ParsingFailed>;
 }
 
 impl Number for u64 {
@@ -186,26 +192,60 @@ impl Number for u64 {
     fn to_string(&self) -> String {
         format!("{}", self)
     }
+
+    fn from_dec_str(input: &str) -> Result<Self, ParsingFailed> {
+        input.parse::<u64>().map_err(|_|())
+    }
 }
 
-impl Number for BigUint {
+impl Number for NumBigUint {
     fn divide_by_two(self) -> StepResult<Self> {
-        Step(self / BigUint::from(2u64))
+        Step(self / NumBigUint::from(2u64))
     }
 
     fn triple_and_add_one(self) -> StepResult<Self> {
-        Step(self * BigUint::from(3u64) + BigUint::one())
+        Step(self * NumBigUint::from(3u64) + NumBigUint::one())
     }
 
     fn is_odd(&self) -> bool {
-        self & BigUint::one() == BigUint::one()
+        self & NumBigUint::one() == NumBigUint::one()
     }
 
     fn is_one(&self) -> bool {
-        *self == BigUint::one()
+        *self == NumBigUint::one()
     }
 
     fn to_string(&self) -> String {
         self.to_str_radix(10)
+    }
+
+    fn from_dec_str(input: &str) -> Result<Self, ParsingFailed> {
+        NumBigUint::from_str_radix(input, 10).map_err(|_|())
+    }
+}
+
+impl Number for Mpz {
+    fn divide_by_two(self) -> StepResult<Self> {
+        Step(self / Mpz::from(2u64))
+    }
+
+    fn triple_and_add_one(self) -> StepResult<Self> {
+        Step(self * Mpz::from(3u64) + Mpz::one())
+    }
+
+    fn is_odd(&self) -> bool {
+        self & Mpz::one() == Mpz::one()
+    }
+
+    fn is_one(&self) -> bool {
+        *self == Mpz::one()
+    }
+
+    fn to_string(&self) -> String {
+        self.to_str_radix(10)
+    }
+
+    fn from_dec_str(input: &str) -> Result<Self, ParsingFailed> {
+        Mpz::from_str_radix(input, 10).map_err(|_|())
     }
 }

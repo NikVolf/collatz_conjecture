@@ -6,8 +6,7 @@
 fn calc_sequence_bigint(input: &str) -> Result<Vec<String>, ()> {
     use Number;
     use StepResult::*;
-    use num_traits::Num;
-    use bigmath::BigUint;
+    use BigUint;
     use calc_step;
 
     let mut sequence_bigint = Vec::with_capacity(256);
