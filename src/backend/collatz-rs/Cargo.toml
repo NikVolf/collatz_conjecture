@@ -1,0 +1,12 @@
+[package]
+authors = ["Mike Lubinets <lubinetsm@yandex.ru>"]
+name = "collatz"
+version = "0.1.0"
+
+[dependencies]
+error-chain = "0.11.0"
+etcommon-bigint = "0.2.9"
+lazy_static = "0.2.11"
+num-bigint = "0.1.40"
+num-traits = "0.1.40"
+smallvec = "0.5.0"
